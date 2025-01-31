@@ -136,12 +136,13 @@ if __name__ == "__main__":
         if hints.get((i, ), None) == 16:
             suffix += 'd'
     func_name = '_'.join([out_name, sig_hash, suffix])
-    asm = ccinfo.asm["cubin"]  # store binary data once
-    hex_ = str(binascii.hexlify(asm))[2:-1]
+    cubin = ccinfo.asm["cubin"]  # store binary data once
+    ptx = ccinfo.asm["ptx"]  # store binary data once
+    hex_ = str(binascii.hexlify(cubin))[2:-1]
     params = {
         "kernel_name": func_name,
         "triton_kernel_name": args.kernel_name,
-        "bin_size": len(asm),
+        "bin_size": len(cubin),
         "bin_data": ", ".join([f"0x{x}{y}" for x, y in zip(hex_[::2], hex_[1::2])]),
         "signature": ", ".join([f"{ty_to_cpp(ty)} {name}" for name, ty in zip(arg_names_not_1, arg_types_not_1)]),
         "full_signature": ", ".join([f"{ty_to_cpp(ty)} {name}" for name, ty in zip(arg_names, arg_types)]),
@@ -160,3 +161,7 @@ if __name__ == "__main__":
         template_path = Path(__file__).parent / "extra" / "cuda" / f"compile.{ext}"
         with out_path.with_suffix(f".{sig_hash}_{suffix}.{ext}").open("w") as fp:
             fp.write(Path(template_path).read_text().format(**params))
+    with out_path.with_suffix(f".{sig_hash}_{suffix}.cubin").open("wb") as fp:
+        fp.write(cubin)
+    with out_path.with_suffix(f".{sig_hash}_{suffix}.ptx").open("w") as fp:
+        fp.write(ptx)
