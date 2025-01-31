@@ -44,6 +44,7 @@ if __name__ == "__main__":
                         help="Path to Python source containing desired kernel in its scope. File will be executed.")
     parser.add_argument("--kernel-name", "-n", type=str, default="", help="Name of the kernel to compile",
                         required=True)
+    parser.add_argument("--arch", "-a", type=int, default=86, help="NVIDIA SM version, e.g. 86 or 89")
     parser.add_argument("--num-warps", "-w", type=int, default=1, help="Number of warps to launch the kernel")
     parser.add_argument("--num-stages", "-ns", type=int, default=3,
                         help="Number of stages (meta-parameter of the kernel)")
@@ -109,7 +110,11 @@ if __name__ == "__main__":
     attrs = {k: [["tt.divisibility", 16]] for k, v in hints.items() if v == 16}
     src = triton.compiler.ASTSource(fn=kernel, constexprs=constants, signature=signature, attrs=attrs)
     opts = {"num_warps": args.num_warps, "num_stages": args.num_stages}
-    ccinfo = triton.compile(src, options=opts)
+    if args.arch is None:
+        target = None
+    else:
+        target = triton.backends.compiler.GPUTarget(backend='cuda', arch=args.arch, warp_size=32)
+    ccinfo = triton.compile(src, target=target, options=opts)
     if ccinfo.metadata.global_scratch_size > 0:
         raise RuntimeError("AOT compiling kernels with global scratch requirements is not yet implemented")
 
